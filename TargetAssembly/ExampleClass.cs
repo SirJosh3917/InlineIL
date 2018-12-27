@@ -16,7 +16,7 @@ namespace TargetAssembly
 		public static void PrintStuff()
 		{
 			Console.WriteLine("Hello World!");
-			Console.WriteLine("The next line shouldn't execute.");
+			Console.WriteLine("The next line won't execute.");
 
 			IL.Emit(OpCodes.Ret);
 

@@ -8,6 +8,7 @@ namespace InlineIL
 	{
 	}
 
+	// just class to detect opcodes & such here
 	public static class IL
 	{
 		public static void Emit(OpCode op)

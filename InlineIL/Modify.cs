@@ -7,12 +7,22 @@ namespace InlineIL
 {
 	public struct Modification
 	{
-		public Instruction emits;
-		public Instruction replace;
+		public Instruction[] ReplaceWith;
+		public Instruction[] DeleteOpCodes;
 	}
 
 	public static class Modify
 	{
+		private static bool IsLoadsOpcode(this Instruction instruction)
+			=> instruction.OpCode.Code == Code.Ldsfld &&
+			instruction.Operand is FieldReference field &&
+			field.FieldType.FullName == typeof(OpCode).FullName;
+
+		private static OpCode GetOpcode(this FieldReference opcodeField)
+			=> (OpCode)typeof(OpCodes) // get the OpCodes.Whatever
+			.GetField(opcodeField.Name)
+			.GetValue(null);
+
 		public static void ReplaceEmits(ModuleDefinition module)
 		{
 			// get every method with [Inline] on it
@@ -20,7 +30,7 @@ namespace InlineIL
 				.SelectMany(method => method.Methods)
 				.Where(method => method.CustomAttributes
 										.Any(attribute =>
-				attribute.AttributeType.FullName == $"{nameof(InlineIL)}.{nameof(InlineAttribute)}"));
+				attribute.AttributeType.FullName == $"{typeof(InlineAttribute).FullName}"));
 
 			foreach(var method in methods)
 			{
@@ -28,21 +38,28 @@ namespace InlineIL
 
 				foreach (var instruction in method.Body.Instructions)
 				{
-					if (instruction.Next != null && // next isn't null
-						instruction.Next.OpCode.Code == Code.Call && // it's a call
-						instruction.OpCode.Code == Code.Ldsfld && // loading a field
-						instruction.Operand is FieldReference field && // is field reference
-						field.FieldType.FullName == typeof(OpCode).FullName)
+					// candidate for an emission replace
+					if (instruction.OpCode.Code == Code.Call &&
+						instruction.Previous != null)
 					{
-						var opcode = (OpCode)typeof(OpCodes) // get the OpCodes.Whatever
-							.GetField(field.Name)
-							.GetValue(null);
-
-						modificationsToBeMade.Add(new Modification
+						if (instruction.Previous.IsLoadsOpcode())
 						{
-							replace = instruction,
-							emits = Instruction.Create(opcode)
-						});
+							var fieldReference = (FieldReference)instruction.Previous.Operand;
+							var opcode = fieldReference.GetOpcode();
+
+							modificationsToBeMade.Add(new Modification
+							{
+								DeleteOpCodes = new Instruction[]
+								{
+									instruction.Previous,
+									instruction,
+								},
+								ReplaceWith = new Instruction[]
+								{
+									Instruction.Create(opcode)
+								}
+							});
+						}
 					}
 				}
 
@@ -52,12 +69,17 @@ namespace InlineIL
 					{
 						var il = method.Body.GetILProcessor();
 
-						// TODO: don't make so many assumptions
-						il.Remove(modification.replace.Next);
+						var last = modification.DeleteOpCodes.Last();
 
-						il.InsertAfter(modification.replace, modification.emits);
+						foreach(var i in modification.ReplaceWith)
+						{
+							il.InsertAfter(last, i);
+						}
 
-						il.Remove(modification.replace);
+						foreach(var i in modification.DeleteOpCodes)
+						{
+							il.Remove(i);
+						}
 					}
 				}
 			}

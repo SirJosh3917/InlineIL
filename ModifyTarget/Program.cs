@@ -16,8 +16,8 @@ namespace ModifyTarget
 		{
 			Console.WriteLine("Replacing instructions in TargetAssembly");
 
-			const string fileName = "TargetAssembly.dll";
-			const string modifiedFileName = "TargetAssembly-Modified.dll";
+			var fileName = args[0];
+			var modifiedFileName = args[1];
 
 			var module = ModuleDefinition.ReadModule(Path.GetFullPath(fileName));
 			Modify.ReplaceEmits(module);

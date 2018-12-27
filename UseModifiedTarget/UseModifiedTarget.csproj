@@ -15,7 +15,7 @@
   </Target>
 
   <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
-    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;cd ..&#xD;&#xA;cd &quot;ModifyTarget&quot;&#xD;&#xA;cd &quot;$(OutDir)&quot;&#xD;&#xA;dotnet ModifyTarget.dll" />
+    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;cd ..&#xD;&#xA;cd &quot;ModifyTarget&quot;&#xD;&#xA;cd &quot;$(OutDir)&quot;&#xD;&#xA;dotnet ModifyTarget.dll &quot;TargetAssembly.dll&quot; &quot;TargetAssembly-Modified.dll&quot;" />
   </Target>
 
 </Project>
