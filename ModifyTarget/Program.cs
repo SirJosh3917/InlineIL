@@ -31,17 +31,9 @@ namespace ModifyTarget
 		static void Replace(string fileName, string modifiedFileName)
 		{
 			var fullFileName = Path.GetFullPath(fileName);
-			var dllCopy = $"{fullFileName}-2.dll";
-
-			if (File.Exists(dllCopy))
-			{
-				File.Delete(dllCopy);
-			}
-
-			File.Copy(fullFileName, dllCopy);
 
 			var module = ModuleDefinition.ReadModule(fullFileName);
-			Modify.ReplaceEmits(Assembly.LoadFrom(dllCopy), module);
+			Modify.ReplaceEmits(Assembly.LoadFrom(fullFileName), module);
 			module.Write(modifiedFileName);
 		}
 	}
