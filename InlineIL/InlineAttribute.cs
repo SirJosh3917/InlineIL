@@ -8,6 +8,16 @@ namespace InlineIL
 	{
 	}
 
+	public class ParameterPassAttribute : Attribute
+	{
+		public ParameterPassAttribute(string id)
+		{
+			Id = id;
+		}
+
+		public string Id { get; }
+	}
+
 	// just class to detect opcodes & such here
 	public static class IL
 	{
@@ -16,6 +26,10 @@ namespace InlineIL
 		}
 
 		public static void Emit(OpCode op, string strValue)
+		{
+		}
+
+		public static void EmitParameterPass(OpCode op, string id)
 		{
 		}
 	}

@@ -2,6 +2,7 @@
 using Mono.Cecil.Cil;
 using System;
 using System.Collections.Generic;
+using System.Reflection;
 using System.Text;
 
 namespace InlineIL
@@ -18,7 +19,7 @@ namespace InlineIL
 			return modification;
 		}
 
-		public static Modification EmitLdStr(Modification modification, OpCode opcode, string str)
+		public static Modification Emit(Modification modification, OpCode opcode, string str)
 		{
 			modification.ReplaceWith = new Instruction[]
 			{
@@ -28,19 +29,11 @@ namespace InlineIL
 			return modification;
 		}
 
-		public static Modification EmitCall(Modification modification, OpCode opcode, string str)
+		public static Modification Emit(Modification modification, OpCode opcode, MethodInfo method)
 		{
 			modification.ReplaceWith = new Instruction[]
 			{
-				Instruction.Create(opcode, modification.Module.ImportReference
-				(
-					// TODO: interpret the s tring into a method
-					typeof(Console)
-					.GetMethod(nameof(Console.WriteLine), System.Reflection.BindingFlags.Public | System.Reflection.BindingFlags.Static, Type.DefaultBinder, new Type[]
-					{
-						typeof(string)
-					}, null)
-				))
+				Instruction.Create(opcode, modification.Module.ImportReference(method))
 			};
 
 			return modification;

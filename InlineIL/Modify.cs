@@ -1,7 +1,9 @@
 ﻿using Mono.Cecil;
 using Mono.Cecil.Cil;
+using System;
 using System.Collections.Generic;
 using System.Linq;
+using System.Reflection;
 
 namespace InlineIL
 {
@@ -27,7 +29,7 @@ namespace InlineIL
 			.GetField(opcodeField.Name)
 			.GetValue(null);
 
-		private static void HandleInstruction(ModuleDefinition module, Instruction instruction, ref List<Modification> modificationsToBeMade)
+		private static void HandleInstruction(ModuleDefinition module, Dictionary<string, object> materializations, Instruction instruction, ref List<Modification> modificationsToBeMade)
 		{
 			// candidate for an emission replace
 			if (instruction.OpCode.Code == Code.Call &&
@@ -70,24 +72,52 @@ namespace InlineIL
 
 					if (opcode == OpCodes.Ldstr) // ldstr!
 					{
-						modificationsToBeMade.Add(InstructionModifications.EmitLdStr(mod, opcode, strValue));
+						modificationsToBeMade.Add(InstructionModifications.Emit(mod, opcode, strValue));
 					}
 					else // some kind of call
 					{
-						modificationsToBeMade.Add(InstructionModifications.EmitCall(mod, opcode, strValue));
+						var material = materializations[strValue];
+
+						modificationsToBeMade.Add((Modification)typeof(InstructionModifications)
+							.GetMethod(nameof(InstructionModifications.Emit), new Type[]
+							{
+								typeof(Modification),
+								typeof(OpCode),
+								material.GetType()
+							})
+							.Invoke(null, new object[] { mod, opcode, material }));
 					}
 				}
 			}
 		}
 
-		public static void ReplaceEmits(ModuleDefinition module)
+		public static void ReplaceEmits(System.Reflection.Assembly assembly, ModuleDefinition module)
 		{
 			// get every method with [Inline] on it
 			var methods = module.GetTypes()
-				.SelectMany(method => method.Methods)
+				.SelectMany(type => type.Methods)
 				.Where(method => method.CustomAttributes
 										.Any(attribute =>
-				attribute.AttributeType.FullName == $"{typeof(InlineAttribute).FullName}"));
+				attribute.AttributeType.FullName == typeof(InlineAttribute).FullName));
+			
+			// turn every ParameterPass(id) attribute into a Dictionary<id, the object returned>
+			var materializations = assembly.GetTypes()
+				.SelectMany(type => type.GetMethods(BindingFlags.NonPublic | BindingFlags.Static)) // every method
+				.Where(method => method.CustomAttributes // with parameterpass
+					.Any(attribute =>
+				attribute.AttributeType.FullName == typeof(ParameterPassAttribute).FullName))
+
+				.ToDictionary
+				(
+					method => method // get id
+						.GetCustomAttributes(false)
+						.OfType<ParameterPassAttribute>()
+						.First()
+						.Id,
+
+					method => method // and value
+						.Invoke(null, new object[] { })
+				);
 
 			foreach(var method in methods)
 			{
@@ -95,7 +125,7 @@ namespace InlineIL
 
 				foreach (var instruction in method.Body.Instructions)
 				{
-					HandleInstruction(module, instruction, ref modificationsToBeMade);
+					HandleInstruction(module, materializations, instruction, ref modificationsToBeMade);
 				}
 
 				if(modificationsToBeMade.Count > 0)

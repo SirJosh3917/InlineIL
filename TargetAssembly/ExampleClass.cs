@@ -1,6 +1,7 @@
 ﻿using InlineIL;
 using Mono.Cecil.Cil;
 using System;
+using System.Reflection;
 
 //
 // this is our TargetAssembly
@@ -10,8 +11,15 @@ using System;
 
 namespace TargetAssembly
 {
+	[AttributeUsage(AttributeTargets.Parameter)]
+	public sealed class TestAttribute : Attribute
+	{
+	}
 	public static class ExampleClass
 	{
+		[ParameterPass("1")] private static MethodInfo _WriteLine()
+			=> typeof(Console).GetMethod(nameof(Console.WriteLine), BindingFlags.Public | BindingFlags.Static, Type.DefaultBinder, new Type[] { typeof(string) }, null);
+
 		[Inline]
 		public static void PrintStuff()
 		{
@@ -19,7 +27,7 @@ namespace TargetAssembly
 			Console.WriteLine("The line after the return won't execute.");
 
 			IL.Emit(OpCodes.Ldstr, "But this will print to the console!");
-			IL.Emit(OpCodes.Call, "TODO: turn this string into an actual function call --> void System.Console::WriteLine(string)");
+			IL.EmitParameterPass(OpCodes.Call, "1");
 
 			IL.Emit(OpCodes.Ret);
 

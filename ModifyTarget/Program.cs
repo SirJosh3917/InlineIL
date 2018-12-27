@@ -2,6 +2,7 @@
 using Mono.Cecil;
 using System;
 using System.IO;
+using System.Reflection;
 
 //
 // This will be run when we build UseModifiedTarget
@@ -29,8 +30,18 @@ namespace ModifyTarget
 
 		static void Replace(string fileName, string modifiedFileName)
 		{
-			var module = ModuleDefinition.ReadModule(Path.GetFullPath(fileName));
-			Modify.ReplaceEmits(module);
+			var fullFileName = Path.GetFullPath(fileName);
+			var dllCopy = $"{fullFileName}-2.dll";
+
+			if (File.Exists(dllCopy))
+			{
+				File.Delete(dllCopy);
+			}
+
+			File.Copy(fullFileName, dllCopy);
+
+			var module = ModuleDefinition.ReadModule(fullFileName);
+			Modify.ReplaceEmits(Assembly.LoadFrom(dllCopy), module);
 			module.Write(modifiedFileName);
 		}
 	}
