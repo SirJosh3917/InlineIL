@@ -1,0 +1,21 @@
+<Project Sdk="Microsoft.NET.Sdk">
+
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>netcoreapp2.1</TargetFramework>
+  </PropertyGroup>
+
+  <ItemGroup>
+    <ProjectReference Include="..\ModifyTarget\ModifyTarget.csproj" />
+    <ProjectReference Include="..\TargetAssembly\TargetAssembly.csproj" />
+  </ItemGroup>
+
+  <Target Name="PostBuild" AfterTargets="PostBuildEvent">
+    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;cd ..&#xD;&#xA;cd &quot;ModifyTarget&quot;&#xD;&#xA;cd &quot;$(OutDir)&quot;&#xD;&#xA;copy &quot;TargetAssembly-Modified.dll&quot; &quot;$(TargetDir)TargetAssembly.dll&quot;" />
+  </Target>
+
+  <Target Name="PreBuild" BeforeTargets="PreBuildEvent">
+    <Exec Command="cd &quot;$(ProjectDir)&quot;&#xD;&#xA;cd ..&#xD;&#xA;cd &quot;ModifyTarget&quot;&#xD;&#xA;cd &quot;$(OutDir)&quot;&#xD;&#xA;dotnet ModifyTarget.dll" />
+  </Target>
+
+</Project>
