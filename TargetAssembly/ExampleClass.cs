@@ -11,10 +11,6 @@ using System.Reflection;
 
 namespace TargetAssembly
 {
-	[AttributeUsage(AttributeTargets.Parameter)]
-	public sealed class TestAttribute : Attribute
-	{
-	}
 	public static class ExampleClass
 	{
 		[ParameterPass("1")] private static MethodInfo _WriteLine()

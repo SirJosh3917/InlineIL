@@ -91,7 +91,7 @@ namespace InlineIL
 			}
 		}
 
-		public static void ReplaceEmits(System.Reflection.Assembly assembly, ModuleDefinition module)
+		public static void ReplaceEmits(Assembly assembly, ModuleDefinition module)
 		{
 			// get every method with [Inline] on it
 			var methods = module.GetTypes()
@@ -99,7 +99,7 @@ namespace InlineIL
 				.Where(method => method.CustomAttributes
 										.Any(attribute =>
 				attribute.AttributeType.FullName == typeof(InlineAttribute).FullName));
-			
+
 			// turn every ParameterPass(id) attribute into a Dictionary<id, the object returned>
 			var materializations = assembly.GetTypes()
 				.SelectMany(type => type.GetMethods(BindingFlags.NonPublic | BindingFlags.Static)) // every method
