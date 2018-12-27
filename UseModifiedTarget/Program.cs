@@ -19,6 +19,7 @@ namespace UseModifiedTarget
 		static void Main(string[] args)
 		{
 			Console.WriteLine("Running TargetAssembly's PrintStuff");
+			Console.WriteLine();
 
 			TargetAssembly.ExampleClass.PrintStuff();
 

@@ -16,9 +16,19 @@ namespace ModifyTarget
 		{
 			Console.WriteLine("Replacing instructions in TargetAssembly");
 
-			var fileName = args[0];
-			var modifiedFileName = args[1];
+			if (args.Length >= 2)
+			{
+				Replace(args[0], args[1]);
+			}
+			else
+			{
+				// set the ModifyTarget project as startup project to debug InlienIL
+				Replace("TargetAssembly.dll", "TargetAssembly-Modified.dll");
+			}
+		}
 
+		static void Replace(string fileName, string modifiedFileName)
+		{
 			var module = ModuleDefinition.ReadModule(Path.GetFullPath(fileName));
 			Modify.ReplaceEmits(module);
 			module.Write(modifiedFileName);

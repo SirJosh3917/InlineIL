@@ -7,6 +7,7 @@ namespace InlineIL
 {
 	public struct Modification
 	{
+		public ModuleDefinition Module;
 		public Instruction[] ReplaceWith;
 		public Instruction[] DeleteOpCodes;
 	}
@@ -18,10 +19,66 @@ namespace InlineIL
 			instruction.Operand is FieldReference field &&
 			field.FieldType.FullName == typeof(OpCode).FullName;
 
+		private static bool IsLoadStringOpcode(this Instruction instruction)
+			=> instruction.OpCode.Code == Code.Ldstr;
+
 		private static OpCode GetOpcode(this FieldReference opcodeField)
 			=> (OpCode)typeof(OpCodes) // get the OpCodes.Whatever
 			.GetField(opcodeField.Name)
 			.GetValue(null);
+
+		private static void HandleInstruction(ModuleDefinition module, Instruction instruction, ref List<Modification> modificationsToBeMade)
+		{
+			// candidate for an emission replace
+			if (instruction.OpCode.Code == Code.Call &&
+				instruction.Previous != null)
+			{
+				if ((instruction.Previous?.IsLoadsOpcode() ?? false)) // emit(opcode)
+				{
+					var opcode = ((FieldReference)instruction.Previous.Operand).GetOpcode();
+					var mod = new Modification
+					{
+						Module = module,
+						DeleteOpCodes = new Instruction[]
+						{
+							instruction.Previous,
+							instruction,
+						}
+					};
+
+					modificationsToBeMade.Add(InstructionModifications.Emit(mod, opcode));
+				}
+				else
+				if ((instruction.Previous?.IsLoadStringOpcode() ?? false) &&
+					(instruction.Previous.Previous?.IsLoadsOpcode() ?? false))
+				{
+					// ldstr or call
+
+					var mod = new Modification
+					{
+						Module = module,
+						DeleteOpCodes = new Instruction[]
+						{
+							instruction.Previous.Previous,
+							instruction.Previous,
+							instruction,
+						}
+					};
+
+					var opcode = ((FieldReference)instruction.Previous.Previous.Operand).GetOpcode();
+					var strValue = (string)instruction.Previous.Operand;
+
+					if (opcode == OpCodes.Ldstr) // ldstr!
+					{
+						modificationsToBeMade.Add(InstructionModifications.EmitLdStr(mod, opcode, strValue));
+					}
+					else // some kind of call
+					{
+						modificationsToBeMade.Add(InstructionModifications.EmitCall(mod, opcode, strValue));
+					}
+				}
+			}
+		}
 
 		public static void ReplaceEmits(ModuleDefinition module)
 		{
@@ -38,29 +95,7 @@ namespace InlineIL
 
 				foreach (var instruction in method.Body.Instructions)
 				{
-					// candidate for an emission replace
-					if (instruction.OpCode.Code == Code.Call &&
-						instruction.Previous != null)
-					{
-						if (instruction.Previous.IsLoadsOpcode())
-						{
-							var fieldReference = (FieldReference)instruction.Previous.Operand;
-							var opcode = fieldReference.GetOpcode();
-
-							modificationsToBeMade.Add(new Modification
-							{
-								DeleteOpCodes = new Instruction[]
-								{
-									instruction.Previous,
-									instruction,
-								},
-								ReplaceWith = new Instruction[]
-								{
-									Instruction.Create(opcode)
-								}
-							});
-						}
-					}
+					HandleInstruction(module, instruction, ref modificationsToBeMade);
 				}
 
 				if(modificationsToBeMade.Count > 0)

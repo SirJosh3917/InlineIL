@@ -14,5 +14,9 @@ namespace InlineIL
 		public static void Emit(OpCode op)
 		{
 		}
+
+		public static void Emit(OpCode op, string strValue)
+		{
+		}
 	}
 }

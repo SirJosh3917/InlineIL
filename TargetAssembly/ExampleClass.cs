@@ -16,7 +16,10 @@ namespace TargetAssembly
 		public static void PrintStuff()
 		{
 			Console.WriteLine("Hello World!");
-			Console.WriteLine("The next line won't execute.");
+			Console.WriteLine("The line after the return won't execute.");
+
+			IL.Emit(OpCodes.Ldstr, "But this will print to the console!");
+			IL.Emit(OpCodes.Call, "TODO: turn this string into an actual function call --> void System.Console::WriteLine(string)");
 
 			IL.Emit(OpCodes.Ret);
 
