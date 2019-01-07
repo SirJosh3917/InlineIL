@@ -29,5 +29,11 @@ namespace TargetAssembly
 
 			Console.WriteLine("This shouldn't happen!");
 		}
+
+		[Inline]
+		public static void ThrowInteger()
+		{
+			IL.EmitThrow(1);
+		}
 	}
 }

@@ -16,5 +16,9 @@ namespace InlineIL
 		public static void EmitParameterPass(OpCode op, string id)
 		{
 		}
+
+		public static void EmitThrow(object toThrow)
+		{
+		}
 	}
 }

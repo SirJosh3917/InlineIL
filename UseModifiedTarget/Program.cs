@@ -23,6 +23,8 @@ namespace UseModifiedTarget
 
 			TargetAssembly.ExampleClass.PrintStuff();
 
+			TargetAssembly.ExampleClass.ThrowInteger();
+
 			Console.ReadLine();
 		}
 	}

@@ -12,10 +12,8 @@ namespace InlineIL
 	{
 		public static void ReplaceEmits(Assembly assembly, ModuleDefinition module)
 		{
-			// get every method with [Inline] on it
 			var methods = GetMethodsWithInlineAttribute(module);
 
-			// turn every ParameterPass(id) attribute into a Dictionary<id, the object returned>
 			var materializations = GetMaterializationsOfMethodsWithParameterPass(assembly);
 
 			foreach (var method in methods)
@@ -53,10 +51,7 @@ namespace InlineIL
 							.SelectMany(type => type.GetMethods(BindingFlags.NonPublic | BindingFlags.Static)) // every private static method
 							.Where // where there's ParameterPassAttribute
 							(
-								method => method.CustomAttributes.Any
-								(
-									attribute => attribute.AttributeType.FullName == typeof(ParameterPassAttribute).FullName
-								)
+								method => method.GetCustomAttributes(typeof(ParameterPassAttribute), false).Length > 0
 							)
 
 							.ToDictionary // materialize the id and return value of it
@@ -88,6 +83,18 @@ namespace InlineIL
 					(instruction.Previous.Previous?.IsLoadsOpcode() ?? false))
 				{
 					HandleOpcodeString(module, materializations, instruction, modificationsToBeMade);
+				}
+				else
+				{
+					modificationsToBeMade = new List<Modification>
+					{
+						new Modification
+						{
+							DeleteOpCodes = new Instruction[] { instruction },
+							Module = module,
+							ReplaceWith = new Instruction[] { Instruction.Create(OpCodes.Throw) }
+						}
+					};
 				}
 			}
 		}
